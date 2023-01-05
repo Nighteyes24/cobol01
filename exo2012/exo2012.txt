@@ -1,0 +1,150 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. EXO2012.
+      ******************************************************************
+      *   PROGRAMME APPELANT POUR LES ACCES AU KSDS ASSURES            *
+      ******************************************************************
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       SPECIAL-NAMES.
+            DECIMAL-POINT IS COMMA.
+       SOURCE-COMPUTER. IBM-3270 WITH DEBUGGING MODE.
+
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+      ******************************************************************
+      *   DESCRIPTION DES ENREGISTREMENTS EN WORKING                   *
+      ******************************************************************
+           COPY ASSURES2 REPLACING ==:PREF:== BY ==ENRW==.
+
+      ******************************************************************
+      *   VARIABLE CONTENANT LE NOM DU SOUS-PROGRAMME A APPELER        *
+      ******************************************************************
+       01  EXO2012S            PIC X(8) VALUE 'EXO2012S'.
+
+      ******************************************************************
+      *   DESCRIPTION DE LA ZONE DE COMMUNICATION AVEC LE PROG APPELANT*
+      ******************************************************************
+           COPY ZCOMASSU.
+
+       PROCEDURE DIVISION.
+           PERFORM DEBUT
+           PERFORM TRAITEMENT
+           PERFORM FIN
+           .
+
+       DEBUT.
+           DISPLAY 'DEBUT EXO2012'
+           .
+
+       TRAITEMENT.
+      * DEMANDE D'OUVERTURE DU FICHIER
+           MOVE SPACES TO ZCOM
+           INITIALIZE ZCOM
+           SET ZCOM-OUVERTURE TO TRUE
+           CALL EXO2012S   USING ZCOM
+           IF NOT ZCOM-OUVERT
+              PERFORM FIN
+           END-IF
+
+      * 1ERE ETAPE : CREATION D'UN ASSURE
+      *    --> ALIMENTATION DES ZONES PAR ACCEPT
+           MOVE SPACES TO ENRW-ASSURES
+           ACCEPT  ENRW-NUMERO
+           ACCEPT  ENRW-NOM-PRENOM
+           ACCEPT  ENRW-ADRESSE
+           ACCEPT  ENRW-CODE-POSTAL
+           ACCEPT  ENRW-VILLE
+           ACCEPT  ENRW-TYPE-VEHICULE
+           ACCEPT  ENRW-PRIME
+           ACCEPT  ENRW-BONUS-MALUS
+           ACCEPT  ENRW-POURCENTAGE
+
+      *    --> ALIMENTATION DE LA ZONE DE COMMUNICATION
+           MOVE SPACES TO ZCOM
+           INITIALIZE ZCOM
+           SET ZCOM-CREATION TO TRUE
+           MOVE ENRW-ASSURES TO ZCOM-ASSURES
+
+      *    --> APPEL ACCESSEUR DE CREATION
+           CALL EXO2012S   USING ZCOM
+      D    DISPLAY 'APRES APPEL SPROG2'
+      D    DISPLAY 'CODE-RETOUR    : ' ZCOM-CODE-RETOUR
+      *
+      *    --> VERIFICATION ECRITURE PAR APPEL ACCESSEUR DE LECTURE
+           INITIALIZE ZCOM
+           SET ZCOM-LECTURE  TO TRUE
+           ACCEPT  ZCOM-NUMERO
+           CALL EXO2012S   USING ZCOM
+      D    DISPLAY 'APRES APPEL SPROG1'
+      D    DISPLAY 'CODE-RETOUR    : ' ZCOM-CODE-RETOUR
+      D    DISPLAY 'ENREGISTREMENT : ' ZCOM-ASSURES
+
+      * 2EME ETAPE : MODIFICATION D'UN ASSURE
+      *    --> ALIMENTATION DES ZONES PAR ACCEPT
+           ACCEPT  ENRW-NUMERO
+           ACCEPT  ENRW-NOM-PRENOM
+           ACCEPT  ENRW-ADRESSE
+           ACCEPT  ENRW-CODE-POSTAL
+           ACCEPT  ENRW-VILLE
+           ACCEPT  ENRW-TYPE-VEHICULE
+           ACCEPT  ENRW-PRIME
+           ACCEPT  ENRW-BONUS-MALUS
+           ACCEPT  ENRW-POURCENTAGE
+
+      *    --> ALIMENTATION DE LA ZONE DE COMMUNICATION
+           MOVE SPACES TO ZCOM
+           INITIALIZE ZCOM
+           SET ZCOM-MODIFICATION  TO TRUE
+           MOVE ENRW-ASSURES TO ZCOM-ASSURES
+
+      *    --> APPEL ACCESSEUR DE MODIFICATION
+           CALL EXO2012S   USING ZCOM
+      D    DISPLAY 'APRES APPEL SPROG3'
+      D    DISPLAY 'CODE-RETOUR    : ' ZCOM-CODE-RETOUR
+      *
+      *    --> VERIFICATION ECRITURE PAR APPEL ACCESSEUR DE LECTURE
+           INITIALIZE ZCOM
+           SET ZCOM-LECTURE  TO TRUE
+           ACCEPT  ZCOM-NUMERO
+           CALL EXO2012S   USING ZCOM
+      D    DISPLAY 'APRES APPEL SPROG1'
+      D    DISPLAY 'CODE-RETOUR    : ' ZCOM-CODE-RETOUR
+      D    DISPLAY 'ENREGISTREMENT : ' ZCOM-ASSURES
+
+      * 3EME ETAPE : SUPPRESSION D'UN ASSURE
+      *    --> ALIMENTATION DES ZONES PAR ACCEPT
+           ACCEPT  ENRW-NUMERO
+
+      *    --> ALIMENTATION DE LA ZONE DE COMMUNICATION
+           MOVE SPACES TO ZCOM
+           INITIALIZE ZCOM
+           SET ZCOM-SUPPRESSION   TO TRUE
+           MOVE ENRW-NUMERO  TO ZCOM-NUMERO
+
+      *    --> APPEL ACCESSEUR DE SUPPRESSION
+           CALL EXO2012S   USING ZCOM
+      D    DISPLAY 'APRES APPEL SPROG4'
+      D    DISPLAY 'CODE-RETOUR    : ' ZCOM-CODE-RETOUR
+      *
+      *    --> VERIFICATION ECRITURE PAR APPEL ACCESSEUR DE LECTURE
+           INITIALIZE ZCOM
+           SET ZCOM-LECTURE  TO TRUE
+           ACCEPT  ZCOM-NUMERO
+           CALL EXO2012S   USING ZCOM
+      D    DISPLAY 'APRES APPEL SPROG1'
+      D    DISPLAY 'CODE-RETOUR    : ' ZCOM-CODE-RETOUR
+      D    DISPLAY 'ENREGISTREMENT : ' ZCOM-ASSURES
+           .
+
+       FIN.
+      * DEMANDE DE FERMETURE DU FICHIER
+           SET ZCOM-FERMETURE TO TRUE
+           CALL EXO2012S   USING ZCOM
+           IF NOT ZCOM-FERME
+              PERFORM FIN
+           END-IF
+
+           DISPLAY 'FIN NORMALE PROG5'
+           STOP RUN
+           .

@@ -1,0 +1,21 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. UNST0512.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01 ZA         PIC X(50) VALUE 'NOIX DE COCO. ET ANANAS'.
+       01 ZB         PIC X(40) VALUE 'NOIX DE COCO'.
+       01 ZD         PIC X(10) VALUE 'ET ANANAS'.
+       01 CPT1       PIC 99.
+       01 CPT2       PIC 99.
+       PROCEDURE DIVISION.
+              UNSTRING
+                 ZA   DELIMITED BY '.'
+                 INTO ZB  COUNT IN CPT1
+                      ZD  COUNT IN CPT2
+               END-UNSTRING
+               DISPLAY ' --> DECONCATENATION'
+               DISPLAY ZB
+               DISPLAY CPT1
+               DISPLAY ZD
+               DISPLAY CPT2
+               STOP RUN.

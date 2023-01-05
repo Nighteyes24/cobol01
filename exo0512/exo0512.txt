@@ -1,0 +1,17 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. EXO0512.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01 ZA         PIC X(80) VALUE SPACES.
+       01 ZB         PIC X(40) VALUE 'NOIX DE COCO'.
+       01 ZD         PIC X(10) VALUE 'ANANAS'.
+       PROCEDURE DIVISION.
+               STRING
+                 ZB   SPACES DELIMITED BY '  '
+                 'ET' SPACES DELIMITED BY SIZE
+                 ZD   DELIMITED BY SIZE
+                 INTO ZA
+               END-STRING
+               DISPLAY ' --> CONCATENATION'
+               DISPLAY ZA
+               STOP RUN.

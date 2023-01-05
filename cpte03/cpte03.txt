@@ -1,0 +1,147 @@
+       IDENTIFICATION DIVISION.
+      ******************************************************************
+      *   EDITION DES QUITTANCES DE PRIME DES ASSURES                  *
+      ******************************************************************
+       PROGRAM-ID. CPTE03.
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       SPECIAL-NAMES.
+            DECIMAL-POINT IS COMMA.
+
+      ******************************************************************
+      *   DECLARATION DU FICHIER ASSURES                               *
+      ******************************************************************
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+            SELECT ASSURES ASSIGN TO FASSURES
+                   ORGANIZATION   IS SEQUENTIAL
+                   ACCESS MODE    IS SEQUENTIAL
+                   FILE STATUS    IS FS-ASSURES.
+
+       DATA DIVISION.
+      ******************************************************************
+      *   DESCRIPTION DU BUFFER                                        *
+      ******************************************************************
+       FILE SECTION.
+       FD  ASSURES
+           RECORDING IS F.
+      *** COPY ASSURES.
+           COPY ASSURES2 REPLACING ==:PREF:== BY ==FIC1==.
+
+       WORKING-STORAGE SECTION.
+      ******************************************************************
+      *   DECLARATION DU FILE STATUS                                   *
+      ******************************************************************
+       01  FS-ASSURES          PIC 99         VALUE ZEROES.
+
+      *   COMPTEUR D'ENREGISTREMENTS LUS
+       01  CPT-LUS             PIC 99         VALUE ZEROES.
+
+      *   INDICATEUR DE FIN DE FICHIER
+       01  IND-FIN             PIC X          VALUE SPACES.
+
+      *   LIBELLES
+       01  LIB-VEHICULE        PIC X(10)      VALUE SPACES.
+       01  LIB-BONUS-MALUS     PIC X(05)      VALUE SPACES.
+
+      *   ZONES DE CALCUL
+       01  BONUS-MALUS         PIC S9(4)V99   VALUE ZEROES.
+       01  NET-A-PAYER         PIC 9(4)V99    VALUE ZEROES.
+
+      *   PICTURES D'EDITION
+       01  BONUS-MALUS-ED      PIC ---9,99    VALUE ZEROES.
+       01  NET-A-PAYER-ED      PIC ZZZ9,99    VALUE ZEROES.
+       01  POURCENTAGE-ED      PIC      Z9    VALUE ZEROES.
+       01  PRIME-ED            PIC ZZZ9,99    VALUE ZEROES.
+
+       PROCEDURE DIVISION.
+      * OUVERTURE DU FICHIER ASSURES
+           OPEN INPUT ASSURES
+           IF FS-ASSURES NOT = ZEROES
+              DISPLAY 'ERREUR OUVERTURE FICHIER ASSURES, FS : '
+                      FS-ASSURES
+              PERFORM FIN
+           END-IF
+
+      * LECTURE DU 1ER ENREGISTREMENT
+           PERFORM LECTURE-ASSURES
+
+      * BOUCLE DE TRAITEMENT DES ENREGISTREMENTS
+           PERFORM UNTIL IND-FIN = '1'
+                      OR FIC1-NUMERO = '999999'
+              PERFORM MEF-QUITTANCE
+              PERFORM LECTURE-ASSURES
+           END-PERFORM
+           .
+
+       FIN.
+      * AFFICHAGE DU COMPTEUR
+           DISPLAY 'NB ENR LUS : ' CPT-LUS
+
+      * FERMETURE DU FICHIER ASSURES
+           CLOSE ASSURES
+
+           STOP RUN
+           .
+
+      ******************************************************************
+      * MISE EN FORME DE LA QUITTANCE                                  *
+      ******************************************************************
+       MEF-QUITTANCE.
+           DISPLAY 'QUITTANCE DE PRIME'
+           DISPLAY '     NUMERO ASSURE      : ' FIC1-NUMERO
+           DISPLAY '     IDENTITE           : ' FIC1-NOM-PRENOM
+           DISPLAY '     ADRESSE            : ' FIC1-ADRESSE
+                   ' '                          FIC1-CODE-POSTAL
+                   ' '                          FIC1-VILLE
+
+      * TYPE DE VEHICULE
+           EVALUATE FIC1-TYPE-VEHICULE
+            WHEN 'C'     MOVE 'CAMION'  TO LIB-VEHICULE
+            WHEN 'M'     MOVE 'MOTO'    TO LIB-VEHICULE
+            WHEN 'V'     MOVE 'VOITURE' TO LIB-VEHICULE
+            WHEN OTHER   MOVE ALL '?'   TO LIB-VEHICULE
+           END-EVALUATE
+           DISPLAY '     TYPE VEHICULE      : ' LIB-VEHICULE
+
+      * PRIME DE BASE
+           MOVE FIC1-PRIME TO PRIME-ED
+           DISPLAY '     PRIME DE BASE      : ' PRIME-ED
+
+      * BONUS / MALUS
+           EVALUATE FIC1-BONUS-MALUS
+            WHEN 'B'     MOVE 'BONUS'   TO LIB-BONUS-MALUS
+                         COMPUTE BONUS-MALUS =
+                         (FIC1-PRIME * FIC1-POURCENTAGE) * -1 / 100
+            WHEN 'M'     MOVE 'MALUS'   TO LIB-BONUS-MALUS
+                         COMPUTE BONUS-MALUS =
+                         FIC1-PRIME * FIC1-POURCENTAGE / 100
+            WHEN OTHER   MOVE ALL '?'   TO LIB-BONUS-MALUS
+           END-EVALUATE
+           MOVE BONUS-MALUS             TO BONUS-MALUS-ED
+           MOVE FIC1-POURCENTAGE        TO POURCENTAGE-ED
+           DISPLAY '     '                 LIB-BONUS-MALUS
+                   ' '                     POURCENTAGE-ED
+                   ' %         : '         BONUS-MALUS-ED
+
+      * NET A PAYER
+           ADD BONUS-MALUS TO FIC1-PRIME GIVING NET-A-PAYER
+           MOVE NET-A-PAYER             TO NET-A-PAYER-ED
+           DISPLAY '     NET A PAYER        : ' NET-A-PAYER-ED
+           .
+
+      ******************************************************************
+      * ENTREES SORTIES                                                *
+      ******************************************************************
+       LECTURE-ASSURES.
+           READ ASSURES
+             AT END        MOVE '1' TO IND-FIN
+             NOT AT END    ADD 1    TO CPT-LUS
+           END-READ
+           IF FS-ASSURES NOT = ZEROES AND 10
+              DISPLAY 'ERREUR LECTURE FICHIER ASSURES, FS : '
+                      FS-ASSURES
+              PERFORM FIN
+           END-IF
+           .

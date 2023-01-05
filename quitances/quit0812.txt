@@ -1,0 +1,70 @@
+       IDENTIFICATION DIVISION.
+      *****************************************************************
+      *  EDITION DES QUITTANCES DE PRIME DES ASSURES                  *
+      *****************************************************************
+       PROGRAM-ID. QUIT0812.
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       SPECIAL-NAMES.
+             DECIMAL-POINT IS COMMA.
+
+      ****************************************************************
+      *            DECLARATION DES FICHIERS                          *
+      ****************************************************************
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+            SELECT ASSURES ASSIGN TO FASSURES
+               ORGANIZATION IS SEQUENTIAL
+               ACCESS MODE IS SEQUENTIAL
+               FILE STATUS IS FS-ASSURES.
+       DATA DIVISION.
+      ****************************************************************
+      *      DESCRPITION LES BUFFERS                                 *
+      ****************************************************************
+       FILE SECTION.
+       FD   ASSURES
+            RECORDING IS F.
+      *** COPY ASSURES.
+          COPY ASSURES2 REPLACING ==:PREF:== BY ==FIC1==.
+       WORKING-STORAGE SECTION.
+      ****************************************************************
+      *   DECLARATION DES FILE STATUS                                *
+      ****************************************************************
+        01  FS-ASSURES          PIC 99 VALUE ZEROES.
+        01  CPT-LUS             PIC 99 VALUE ZEROES.
+        01  PRIME-ED            PIC ZZZ9,99 VALUE ZEROES.
+      * VARIABLE FIN DE FICHIER
+        01 WS-EOF               PIC X  VALUE SPACES.
+        PROCEDURE DIVISION.
+            OPEN INPUT ASSURES
+            IF FS-ASSURES NOT = ZEROES
+                DISPLAY 'ERREUR OUVERTURE FICHIER ASSURES, FS : '
+                        FS-ASSURES
+                PERFORM FIN
+             END-IF
+            READ ASSURES
+            PERFORM UNTIL FIC1-NUMERO = '999999'
+               ADD 1 TO CPT-LUS
+               MOVE FIC1-PRIME TO PRIME-ED
+               DISPLAY FIC1-NUMERO        ', '
+                       FIC1-NOM-PRENOM    ', '
+                       FIC1-ADRESSE       ', '
+                       FIC1-CODE-POSTAL   ', '
+                       FIC1-VILLE         ', '
+                       FIC1-TYPE-VEHICULE ', '
+                       PRIME-ED           ', '
+                       FIC1-BONUS-MALUS   ', '
+                       FIC1-POURCENTAGE
+               READ ASSURES
+            END-PERFORM.
+      * PARAGRAPHE DE LECTURE
+        READ-ASSURES.
+            READ ASSURES
+            AT END MOVE 'Y' TO WS-EOF
+            NOT AT END ADD 1 TO CPT-LUS
+            .
+      * PARAGRAPHE DE FIN
+        FIN.
+            DISPLAY 'NB ENR LUS : ' CPT-LUS
+            CLOSE ASSURES.
+            STOP RUN.

@@ -1,0 +1,93 @@
+       IDENTIFICATION DIVISION.
+      ******************************************************************
+      *   SOUS-PROGRAMME DE LECTURE D'UN ASSURE                        *
+      ******************************************************************
+       PROGRAM-ID. SPROG62.
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       SPECIAL-NAMES.
+            DECIMAL-POINT IS COMMA.
+
+      ******************************************************************
+      *   DECLARATION DU FICHIER ASSURES KSDS                          *
+      ******************************************************************
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+            SELECT ASSURES ASSIGN TO FASSURES
+                   ORGANIZATION   IS INDEXED
+                   ACCESS MODE    IS RANDOM
+                   RECORD KEY     IS ENRB-NUMERO
+                   FILE STATUS    IS FS-ASSURES.
+
+       DATA DIVISION.
+      ******************************************************************
+      *   DESCRIPTION DES BUFFERS                                      *
+      ******************************************************************
+       FILE SECTION.
+       FD  ASSURES.
+           COPY ASSURES2 REPLACING ==:PREF:== BY ==ENRB==.
+
+       WORKING-STORAGE SECTION.
+      ******************************************************************
+      *   DESCRIPTION DES ENREGISTREMENTS EN WORKING                   *
+      ******************************************************************
+           COPY ASSURES2 REPLACING ==:PREF:== BY ==ENRW==.
+
+      ******************************************************************
+      *   DECLARATION DU FILE STATUS                                   *
+      ******************************************************************
+       01  FS-ASSURES          PIC 99         VALUE ZEROES.
+
+       LINKAGE SECTION.
+      ******************************************************************
+      *   DESCRIPTION DE LA ZONE DE COMMUNICATION AVEC LE PROG APPELANT*
+      ******************************************************************
+       01  ZCOM-LEC.
+           05 ZCOM-NUMERO      PIC X(6).
+           05 ZCOM-ASSURES     PIC X(80).
+           05 ZCOM-CODE-RETOUR PIC 9.
+              88 ZCOM-TROUVE     VALUE ZEROES.
+              88 ZCOM-DOUBLON    VALUE 2.
+              88 ZCOM-ERREUR     VALUE 9.
+
+       PROCEDURE DIVISION USING ZCOM-LEC.
+           PERFORM DEBUT
+           PERFORM ECRITURE
+           PERFORM FIN
+           .
+
+       DEBUT.
+      * OUVERTURE DU FICHIER ASSURES
+           OPEN INPUT ASSURES
+           IF FS-ASSURES NOT = ZEROES
+              DISPLAY 'ERREUR OUVERTURE FICHIER ASSURES, FS : '
+                      FS-ASSURES
+              PERFORM FIN
+           END-IF
+           .
+
+       ECRITURE.
+      * ON RENSEIGNE LA CLE DU FICHIER
+           MOVE ZCOM-NUMERO TO ENRB-NUMERO
+
+      * ECRITURE ASSURE AVEC LA CLE
+           WRITE ASSURES INTO ENRW-ASSURES
+             INVALID KEY
+              SET ZCOM-DOUBLON TO TRUE
+              DISPLAY 'KEY EST DEJA DS LE FICHIER, CODE:' ZCOM-DOUBLON
+             NOT INVALID KEY
+              SET ZCOM-TROUVE TO TRUE
+              MOVE ENRW-ASSURES TO ZCOM-ASSURES
+           END-READ
+           IF FS-ASSURES NOT = ZEROES AND 22
+              SET ZCOM-ERREUR TO TRUE
+              PERFORM FIN
+           END-IF
+           .
+
+       FIN.
+      * FERMETURE DES FICHIERS
+           CLOSE ASSURES
+           GOBACK
+           .

@@ -1,0 +1,95 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. PROG6.
+      * PROGRAMME APPELANT POUR LES ACCES AU KSDS ASSURES
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       SPECIAL-NAMES.
+             DECIMAL-POINT IS COMMA.
+
+      ****************************************************************
+      *            DECLARATION DU FICHIER ASSURES KSDS               *
+      ****************************************************************
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+            SELECT ASSURES ASSIGN TO FASSURES
+               ORGANIZATION IS INDEXED
+               ACCESS MODE  IS  RANDOM
+               RECORD KEY  IS ENRB-NUMERO
+               FILE STATUS  IS FS-ASSURES.
+       DATA DIVISION.
+      ****************************************************************
+      *      DESCRPITION DES BUFFERS                                 *
+      ****************************************************************
+       FILE SECTION.
+       FD   ASSURES.
+          COPY ASSURES2 REPLACING ==:PREF:== BY ==ENRB==.
+       WORKING-STORAGE SECTION.
+      ****************************************************************
+      *   DECLARATION DES ENREGISTREMENTS EN WORKING                *
+      ****************************************************************
+        01  FS-ASSURES          PIC 99 VALUE ZEROES.
+          COPY ASSURES2 REPLACING ==:PREF:== BY ==ENRW==.
+      * VARIABLE CONTENANT LE NOM DU SOUS-PROGRAMME A APPELER
+        01  SOUS-PROG           PIC X(8) VALUE SPACES.
+      * DESCRIPTION DE LA ZONE DE COMMUNICATION AC LE PROG APPELANT
+        01 ZCOM-LEC.
+            05 ZCOM-NUMERO            PIC X(6).
+            05 ZCOM-ASSURES           PIC X(60).
+            05 ZCOM-CODE-RETOUR       PIC 9.
+               88 ZCOM-TROUVE         VALUE ZEROES.
+               88 ZCOM-NON-TROUVE     VALUE 1.
+               88 ZCOM-ERREUR         VALUE 9.
+
+       PROCEDURE DIVISION.
+            PERFORM DEBUT
+            PERFORM TRAITEMENT
+            PERFORM FIN
+            .
+        DEBUT.
+               DISPLAY 'DEBUT PROGRAMME PROG6'
+            .
+        TRAITEMENT.
+      * 1ERE ETAPE : CREATION D'UN ASSURE
+      *  --> ALIMENTATION DES ZONES PAR ACCEPT
+               ACCEPT   ENRW-NUMRO
+               ACCEPT   ENRW-NOM-PRENOM
+               ACCEPT   ENRW-ADRESSE
+               ACCEPT   ENRW-CODE-POSTAL
+               ACCEPT   ENRW-VILLE
+               ACCEPT   ENRW-TYPE-VEHICULE
+               ACCEPT   ENRW-PRIME
+               ACCEPT   ENRW-BONUS-MALUS
+               ACCEPT   ENRW-POURCENTAGE
+      *  --> ALIMENTATION DE LA ZONE DE COMMUNICATION
+               MOVE SPACES TO ZCOM-LEC
+               INITIALIZE ZCOM-LEC
+               MOVE ENRW-ASSURES TO ZCOM-ASSURES
+      *  --> APPEL ACCESSEUR DE CREATION
+               MOVE 'SPROG65' TO SOUS-PROG
+               CALL SOUS-PROG USING ZCOM
+               DISPLAY 'CODE RETOUR ECRITURE :' ZCOM-CODE-RETOUR
+      *  --> APPEL ACCESSEUR DE LECTURE
+               MOVE 'SPROG65' TO SOUS-PROG
+               CALL SOUS-PROG USING ZCOM
+               DISPLAY 'CODE RETOUR LECTURE :' ZCOM-CODE-RETOUR
+      *  --> APPEL ACCESSEUR DE MODIFICATION
+               MOVE 'SPROG65' TO SOUS-PROG
+               CALL SOUS-PROG USING ZCOM
+               DISPLAY 'CODE RETOUR MODIF :' ZCOM-CODE-RETOOUR
+      *  --> APPEL ACCESSEUR DE REWRITE
+               MOVE 'SPROG65' TO SOUS-PROG
+               CALL SOUS-PROG USING ZCOM
+               DISPLAY 'CODE RETOUR REWRITE :' ZCOM-CODE-RETOUR
+      *  --> VERIFICATION ECRITURE PAR ACCESSEUR DE LECTURE
+               INITIALIZE ZCOM-LEC
+               MOVE ENRW-NUMRO TO ZCOM-NUMERO
+               MOVE 'SPROG65' TO SOUS-PROG
+               CALL SOUS-PROG USING ZCOM
+               DISPLAY 'CODE-RETOUR-VERIF :' ZCOM-CODE-RETOUR
+               .
+        TRAITEMENT.
+      *  APPEL ACCESSEUR
+               .
+        FIN.
+            CLOSE ASSURES
+            STOP RUN.

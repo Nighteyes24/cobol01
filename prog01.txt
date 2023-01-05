@@ -1,0 +1,30 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. PROG01.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01 ZA         PIC X(80) VALUE 'NOIX DE COCO ET ANANAS'.
+       01 SHIRO      PIC X(01) VALUE ' '.
+       01 CARCO      PIC X(02) VALUE 'CO'.
+       01 CAROC      PIC X(02) VALUE 'OC'.
+       01 CPTSHI     PIC 9(2)  VALUE ZEROES.
+       01 CPTCO      PIC 9(2)  VALUE ZEROES.
+       01 CPTOC      PIC 9(2)  VALUE ZEROES.
+       PROCEDURE DIVISION.
+               INSPECT ZA TALLYING CPTSHI
+                      FOR ALL SHIRO
+               INSPECT ZA TALLYING CPTCO
+                      FOR ALL CARCO
+               INSPECT ZA TALLYING CPTOC
+                      FOR ALL CAROC
+               INSPECT ZA REPLACING
+                      ALL 'ANANAS' BY 'BANANE'
+               DISPLAY ZA
+               INSPECT ZA REPLACING
+                      FIRST 'N' BY 'F'
+               INSPECT ZA TALLYING ALL 'O' BY 'A'
+               INSPECT ZA REPLACING 'O' BY 'A'
+               DISPLAY 'CPT SHIRO: ' CPTSHI
+               DISPLAY 'CPT CARCO: ' CPTCO
+               DISPLAY 'CPT CAROC: ' CPTOC
+               DISPLAY ZA
+               STOP RUN.

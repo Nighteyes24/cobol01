@@ -1,0 +1,235 @@
+       IDENTIFICATION DIVISION.
+      ******************************************************************
+      *   EDITION DES QUITTANCES DE PRIME DES ASSURES                  *
+      ******************************************************************
+       PROGRAM-ID. QUITIM2.
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       SPECIAL-NAMES.
+            DECIMAL-POINT IS COMMA.
+
+      ******************************************************************
+      *   DECLARATION DU FICHIER ASSURES                               *
+      ******************************************************************
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+            SELECT ASSURES ASSIGN TO FASSURES
+                   ORGANIZATION   IS SEQUENTIAL
+                   ACCESS MODE    IS SEQUENTIAL
+                   FILE STATUS    IS FS-ASSURES.
+
+            SELECT EDITION ASSIGN TO FEDITION
+                   ORGANIZATION   IS SEQUENTIAL
+                   ACCESS MODE    IS SEQUENTIAL
+                   FILE STATUS    IS FS-EDITION.
+       DATA DIVISION.
+      ******************************************************************
+      *   DESCRIPTION DU BUFFER                                        *
+      ******************************************************************
+       FILE SECTION.
+       FD  ASSURES
+           RECORDING IS F.
+      *** COPY ASSURES.
+           COPY ASSURES2 REPLACING ==:PREF:== BY ==FIC1==.
+       FD EDITION
+           RECORDING IS F.
+       01  FIC2-ENR.
+           05 FIC2-SAUT            PIC X.
+      * 1 = SAUT DE PAGE
+      * 0 = SAUT DE LIGNE
+      * - = SAUT DE 2 LIGNES
+      *   = LIGNE SUIVANTE
+           05 FIC2-LIGNE             PIC X(132).
+       WORKING-STORAGE SECTION.
+      ******************************************************************
+      *   DECLARATION DU FILE STATUS                                   *
+      ******************************************************************
+       01  FS-ASSURES          PIC 99         VALUE ZEROES.
+       01  FS-EDITION          PIC 99         VALUE ZEROES.
+      * COMPTEUR DE LECTURE
+       01  CPT-LUS             PIC 99         VALUE ZEROES.
+      *   INDICATEUR DE FIN DE FICHIER
+       01  IND-FIN             PIC X          VALUE SPACES.
+            88 FIN-FICHIER                     VALUE '1'.
+      *   LIBELLES
+       01  LIB-VEHICULE        PIC X(10)      VALUE SPACES.
+       01  LIB-BONUS-MALUS     PIC X(05)      VALUE SPACES.
+      *   ZONES DE CALCUL
+       01  BONUS-MALUS         PIC S9(4)V99   VALUE ZEROES.
+       01  NET-A-PAYER         PIC 9(4)V99    VALUE ZEROES.
+      *   PICTURES D'EDITION
+       01  BONUS-MALUS-ED      PIC ---9,99    VALUE ZEROES.
+       01  NET-A-PAYER-ED      PIC ZZZ9,99    VALUE ZEROES.
+       01  POURCENTAGE-ED      PIC      Z9    VALUE ZEROES.
+       01  PRIME-ED            PIC ZZZ9,99    VALUE ZEROES.
+       01 CURRENT-DATE-FIELDS.
+           05 CURRENT-DATE.
+              10 CURRENT-JJ       PIC 9(2).
+              10 CURRENT-MM       PIC 9(2).
+              10 CURRENT-AAAA     PIC 9(4).
+      *   LIGNES D'EDITION
+        01  LIG1.
+           05                  PIC X(30)      VALUE SPACES.
+           05                  PIC X(17)      VALUE 'LISTE DES ASSURES'.
+           05                  PIC X(10)      VALUE SPACES.
+           05                  PIC X(05)      VALUE 'LE : '.
+           05 LIG1-DATE-JOUR.
+              10 CURRENT-JJ    PIC 99.
+              10               PIC X VALUE '/'.
+              10 CURRENT-MM    PIC 99.
+              10               PIC X VALUE '/'.
+              10 CURRENT-AAAA  PIC 99.
+       01  LIG2.
+           05                  PIC X(30)      VALUE SPACES.
+           05                  PIC X(17)      VALUE ALL '-'.
+       01  LIG3.
+           05                  PIC X(06)      VALUE 'NUM'.
+           05                  PIC X(01)      VALUE SPACES.
+           05                  PIC X(20)      VALUE 'IDENTITE'.
+           05                  PIC X(01)      VALUE SPACES.
+           05                  PIC X(18)      VALUE 'ADRESSE'.
+           05                  PIC X(02)      VALUE SPACES.
+           05                  PIC X(07)      VALUE 'CD.POST'.
+           05                  PIC X(02)      VALUE SPACES.
+           05                  PIC X(12)      VALUE 'VILLE'.
+           05                  PIC X(01)      VALUE SPACES.
+           05                  PIC X(10)      VALUE 'VEHICULE'.
+           05                  PIC X(01)      VALUE SPACES.
+           05                  PIC X(07)      VALUE 'PRIME'.
+           05                  PIC X(03)      VALUE SPACES.
+           05                  PIC X(03)      VALUE 'B/M'.
+           05                  PIC X(02)      VALUE SPACES.
+           05                  PIC X(01)      VALUE '%'.
+       01  LIG4.
+            05                  PIC X(06)      VALUE ALL '-'.
+            05                  PIC X(01)      VALUE SPACES.
+            05                  PIC X(20)      VALUE ALL '-'.
+            05                  PIC X(01)      VALUE SPACES.
+            05                  PIC X(18)      VALUE ALL '-'.
+            05                  PIC X(03)      VALUE SPACES.
+            05                  PIC X(05)      VALUE ALL '-'.
+            05                  PIC X(03)      VALUE SPACES.
+            05                  PIC X(12)      VALUE ALL '-'.
+            05                  PIC X(01)      VALUE SPACES.
+            05                  PIC X(10)      VALUE ALL '-'.
+            05                  PIC X(01)      VALUE SPACES.
+            05                  PIC X(07)      VALUE ALL '-'.
+            05                  PIC X(03)      VALUE SPACES.
+            05                  PIC X(03)      VALUE ' - '.
+            05                  PIC X(02)      VALUE SPACES.
+            05                  PIC X(02)      VALUE ALL '-'.
+       01  LIG5.
+            05  LIG5-NUMERO      PIC X(06)      VALUE SPACES.
+            05                   PIC X(01)      VALUE SPACES.
+            05  LIG5-NOM-PRENOM  PIC X(20)      VALUE SPACES.
+            05                   PIC X(01)      VALUE SPACES.
+            05  LIG5-ADRESSE     PIC X(18)      VALUE SPACES.
+            05                   PIC X(03)      VALUE SPACES.
+            05  LIG5-CODE-POSTAL PIC 9(05)      VALUE ZEROES.
+            05                   PIC X(03)      VALUE SPACES.
+            05  LIG5-VILLE       PIC X(12)      VALUE SPACES.
+            05                   PIC X(01)      VALUE SPACES.
+            05  LIG5-VEHICULE    PIC X(10)      VALUE SPACES.
+            05                   PIC X(01)      VALUE SPACES.
+            05  LIG5-PRIME       PIC ZZZ9,99    VALUE ZEROES.
+            05                   PIC X(03)      VALUE SPACES.
+            05  LIG5-BONUS-MALUS PIC X(03)      VALUE SPACES.
+            05                   PIC X(02)      VALUE SPACES.
+            05  LIG5-POURCENTAGE PIC Z9         VALUE ZEROES.
+       01  LIG6.
+            05                   PIC X(13)      VALUE 'NB ASSURES : '.
+            05  LIG6-NB-ASSURES  PIC Z9         VALUE ZEROES.
+       PROCEDURE DIVISION.
+      * OUVERTURE DU FICHIER ASSURES
+           OPEN INPUT ASSURES
+           IF FS-ASSURES NOT = ZEROES
+              DISPLAY 'ERREUR OUVERTURE FICHIER ASSURES, FS : '
+                      FS-ASSURES
+              PERFORM FIN
+           END-IF
+
+      * OUVERTURE DU FICHIER EDITION
+           OPEN OUTPUT EDITION
+           IF FS-EDITION NOT = ZEROES
+              DISPLAY 'ERREUR OUVERTURE FICIER EDITION, FS : '
+                 FS-EDITION
+              PERFORM FIN
+           END-IF
+      * LECTURE DU 1ER ENREGISTREMENT
+           PERFORM LECTURE-ASSURES
+
+      *  ECRITURE 1ERE LIGNE
+           MOVE '0' TO FIC2-SAUT
+           MOVE FUNCTION CURRENT-DATE TO CURRENT-DATE-FIELDS
+           MOVE CURRENT-DATE-FIELDS TO LIG1-DATE-JOUR
+           MOVE LIG1 TO FIC2-LIGNE
+           WRITE FIC2-ENR
+      * LIGNE 2, SAUT DE LIGNE
+           MOVE '0' TO FIC2-SAUT
+           MOVE LIG2 TO FIC2-LIGNE
+           WRITE FIC2-ENR
+      * LIGNE 3, LIGNE SUIVANTE
+           MOVE '0' TO FIC2-SAUT
+           MOVE LIG3 TO FIC2-LIGNE
+           WRITE FIC2-ENR
+      *  LIGNE 4, LIGNE SUIVANTE
+           MOVE '0' TO FIC2-SAUT
+           MOVE LIG4 TO FIC2-LIGNE
+           WRITE FIC2-ENR
+      * BOUCLE DE TRAITEMENT DES ENREGISTREMENTS
+           PERFORM UNTIL FIN-FICHIER
+                      OR FIC1-NUMERO = '999999'
+              PERFORM MEF-QUITTANCE
+              PERFORM LECTURE-ASSURES
+           END-PERFORM
+           .
+
+       FIN.
+      * AFFICHAGE DU COMPTEUR
+           DISPLAY 'NB ENR LUS : ' CPT-LUS
+
+      * FERMETURE DU FICHIER ASSURES
+           CLOSE ASSURES
+                 EDITION
+           STOP RUN
+           .
+
+      ******************************************************************
+      * MISE EN FORME DE LA QUITTANCE                                  *
+      ******************************************************************
+       MEF-QUITTANCE.
+      * LIGNE 5, TYPE DE VEHICULE
+           MOVE FIC1-NUMERO TO LIG5-NUMERO
+           MOVE FIC1-NOM-PRENOM TO LIG5-NOM-PRENOM
+           MOVE FIC1-ADRESSE TO LIG5-ADRESSE
+           MOVE FIC1-CODE-POSTAL TO LIG5-CODE-POSTAL
+           MOVE FIC1-VILLE TO LIG5-VILLE
+           EVALUATE FIC1-TYPE-VEHICULE
+           WHEN 'C' MOVE 'CAMION' TO LIG5-VEHICULE
+           WHEN 'M' MOVE 'MOTO' TO LIG5-VEHICULE
+           WHEN 'V' MOVE 'VOITURE' TO LIG5-VEHICULE
+           WHEN OTHER MOVE ALL '?' TO LIG5-VEHICULE
+           END-EVALUATE
+           MOVE FIC1-PRIME TO LIG5-PRIME
+           MOVE FIC1-BONUS-MALUS TO LIG5-BONUS-MALUS
+           MOVE FIC1-POURCENTAGE TO LIG5-POURCENTAGE
+           MOVE ' ' TO FIC2-SAUT
+           MOVE LIG5 TO FIC2-LIGNE
+           WRITE FIC2-ENR
+
+           .
+      ****************************************************************
+      * ENTREES SORTIES *
+      ****************************************************************
+       LECTURE-ASSURES.
+           READ ASSURES
+           AT END SET FIN-FICHIER TO TRUE
+           NOT AT END ADD 1 TO CPT-LUS
+           END-READ
+           IF FS-ASSURES NOT = ZEROES AND 10
+           DISPLAY 'ERREUR LECTURE FICHIER ASSURES, FS : '
+           FS-ASSURES
+           PERFORM FIN
+           END-IF
+           .

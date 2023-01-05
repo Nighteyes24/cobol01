@@ -1,0 +1,284 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. PPERSO.
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       SPECIAL-NAMES.
+            DECIMAL-POINT IS COMMA.
+       SOURCE-COMPUTER. IBM-3270 WITH DEBUGGING MODE.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+            SELECT MVT   ASSIGN TO MOASSU
+            ORGANIZATION IS SEQUENTIAL
+            ACCESS MODE IS SEQUENTIAL
+            FILE STATUS IS FS-MVT.
+       DATA DIVISION.
+       FILE SECTION.
+         FD MVT.
+         COPY PPMVT REPLACING ==:MVT:== BY ==MVT==.
+       WORKING-STORAGE SECTION.
+      *   DESCRIPTION DES ENREGISTREMENTS EN WORKING                   *
+           COPY PPERK REPLACING ==:ASS:== BY ==ENRW==.
+
+      *   VARIABLE CONTENANT LE NOM DU SOUS-PROGRAMME A APPELER        *
+         01  PERSOSP            PIC X(8) VALUE 'PERSOSP'.
+
+      *   DESCRIPTION DE LA ZONE DE COMMUNICATION AVEC LE PROG APPELANT*
+      *   DECLARATION DE FILE STATUS
+         01 FS-MVT              PIC 99 VALUE ZEROES.
+      * DECLARATION DES INDICATEURS
+         01 IND-ERREUR          PIC 99 VALUE ZEROES.
+         01 IND-TEST            PIC 99 VALUE ZEROES.
+         01 IND-FIN             PIC 9  VALUE ZEROES.
+      *  01 I                   PIC 99 VALUE ZEROES.
+      * COMPTEURS INITALISATION DES COMPTEURS
+         01 CPT-LUS             PIC 99 VALUE ZEROES.
+         01 CPT-ERR             PIC 99 VALUE ZEROES.
+         01 CPT-CRE             PIC 99 VALUE ZEROES.
+         01 CPT-MOD             PIC 99 VALUE ZEROES.
+         01 CPT-SUP             PIC 99 VALUE ZEROES.
+
+      *TABLEAU VEHICULE
+         01 TAB-VEHICULE.
+            05 ZONE-VEHICULE     OCCURS 3 TIMES INDEXED BY BOB.
+              10 CODE-VEHICULE     PIC X(01).
+              10 TYPE-VEHICULE     PIC X(07).
+
+      * TABLEAU CODE POSTAUX ET VILLE
+         01 TAB-VILLE.
+            05 ZONE-ZIP          OCCURS 15 TIMES INDEXED BY TIM.
+              10 CODE-POSTAL       PIC 9(05).
+              10 VILLE             PIC X(12).
+           COPY ZCOMASSU.
+       PROCEDURE DIVISION.
+           PERFORM DEBUT
+           PERFORM ALIMENTATION-TABVE
+           PERFORM ALIMENTATION-TABVI
+           PERFORM UNTIL IND-FIN = 1
+                  PERFORM CONTROLE-CHAMPS
+                  IF IND-TEST = ZEROES
+                    PERFORM TRAITEMENT
+                    PERFORM CTRL-LOGI
+                  END-IF
+                  IF IND-ERREUR = 0
+                     PERFORM UPDATE
+                  ELSE
+                     ADD 1 TO CPT-ERR
+                  END-IF
+                  PERFORM READMVT
+           END-PERFORM
+           PERFORM FIN
+           .
+
+       DEBUT.
+           DISPLAY 'DEBUT DU PROJET PERSO'
+           OPEN I-O MVT
+           IF FS-MVT NOT = ZEROES
+               DISPLAY 'ERREUR OUVERTURE DU FICHIER MVT : '
+                 FS-MVT
+               PERFORM FIN
+           END-IF
+      * DEMANDE D'OUVERTURE DU FICHIER
+           MOVE SPACES TO ZCOM
+           INITIALIZE ZCOM
+           SET ZCOM-OUVERTURE TO TRUE
+           CALL PERSOSP    USING ZCOM
+               IF NOT ZCOM-OUVERT
+                  PERFORM FIN
+               END-IF
+           PERFORM READMVT
+           .
+       READMVT.
+           MOVE '0' TO IND-ERREUR
+           MOVE '0' TO IND-TEST
+           READ MVT
+             AT END MOVE 1 TO IND-FIN
+             NOT AT END ADD 1 TO CPT-LUS
+           END-READ
+           IF FS-MVT NOT = ZEROES AND 10
+               DISPLAY 'ERREUR DE LECTURE DU FICHIER MVT : '
+               FS-MVT
+               PERFORM FIN
+           END-IF
+           .
+       CONTROLE-CHAMPS.
+      * CONTROLE SYNTAXIQUE DU CHAMPS
+           IF MVT-ACTION NOT = 'C' AND 'M' AND 'S'
+               DISPLAY 'ACTION INVALIDE DONC CONTROLE SUIVANT : '
+                        MVT-ACTION
+               ADD 1 TO IND-ERREUR
+               ADD 1 TO IND-TEST
+           END-IF
+           .
+       TRAITEMENT.
+      * CONTROLE MATRICULE
+           IF MVT-MATRICULE = ZEROES
+               DISPLAY 'MATRICULE INVALIDE : ' MVT-MATRICULE
+               ADD 1 TO IND-ERREUR
+           ELSE IF MVT-MATRICULE IS NOT NUMERIC
+               DISPLAY 'MATRICULE INVALIDE : ' MVT-MATRICULE
+               ADD 1 TO IND-ERREUR
+           END-IF
+      * CONTROLE NOM PRENOM
+           IF MVT-NOM-PRENOM = SPACES
+               DISPLAY 'NOM PRENOM NON RENSEIGNE : ' MVT-NOM-PRENOM
+               ADD 1 TO IND-ERREUR
+           END-IF
+      * CONTROLE ADRESSE
+           IF MVT-RUE-ADRESSE = SPACES
+               DISPLAY 'RUE ADRESSE INVALIDE : ' MVT-RUE-ADRESSE
+               ADD 1 TO IND-ERREUR
+           END-IF
+      * CONTROLE CODE POSTAL
+           IF MVT-CODE-POSTAL = ZEROES
+               DISPLAY 'CODE POSTAL INVALIDE DOIT EXISTER EN TAB: '
+               MVT-CODE-POSTAL
+               ADD 1 TO IND-ERREUR
+           ELSE IF MVT-CODE-POSTAL IS NOT NUMERIC
+               DISPLAY 'CODE POSTAL INVALIDE DOIT EXISTER EN TAB: '
+               MVT-CODE-POSTAL
+               ADD 1 TO IND-ERREUR
+           END-IF
+            SET TIM TO 1
+           SEARCH ZONE-ZIP
+               AT END DISPLAY 'ZIPCODE NOT FOUND :' MVT-CODE-POSTAL
+               ADD 1 TO IND-ERREUR
+               WHEN CODE-POSTAL(TIM) = MVT-CODE-POSTAL
+               NEXT SENTENCE
+           END-SEARCH
+      * CONTROLE VILLE
+           IF MVT-VILLE = SPACES
+               DISPLAY 'VILLE INVALIDE : ' MVT-VILLE
+               ADD 1 TO IND-ERREUR
+           ELSE IF MVT-VILLE IS NUMERIC
+               DISPLAY 'VILLE INVALIDE : ' MVT-VILLE
+               ADD 1 TO IND-ERREUR
+           END-IF
+            SET TIM TO 1
+           SEARCH ZONE-ZIP
+               AT END DISPLAY 'CITY NOT FOUND :' MVT-VILLE
+               ADD 1 TO IND-ERREUR
+               WHEN VILLE(TIM) = MVT-VILLE
+               NEXT SENTENCE
+           END-SEARCH
+      * CONTROLE TYPE VEHICULE
+           IF MVT-TYPE-VEHICULE = SPACES
+               DISPLAY 'TYPE VEHICULE INVALIDE : ' MVT-TYPE-VEHICULE
+               ADD 1 TO IND-ERREUR
+           ELSE IF MVT-TYPE-VEHICULE IS NUMERIC
+               DISPLAY 'TYPE VEHICULE INVALIDE : ' MVT-TYPE-VEHICULE
+               ADD 1 TO IND-ERREUR
+           END-IF
+            SET BOB TO 1
+           SEARCH ZONE-VEHICULE
+               AT END DISPLAY 'TYPEV NOT FOUND :' MVT-TYPE-VEHICULE
+               ADD 1 TO IND-ERREUR
+               WHEN CODE-VEHICULE(BOB) = MVT-TYPE-VEHICULE
+               NEXT SENTENCE
+           END-SEARCH
+      * CONTROLE PRIME
+           IF MVT-PRIME = ZEROES
+               DISPLAY 'PRIME INVALIDE : ' MVT-PRIME
+               ADD 1 TO IND-ERREUR
+           ELSE IF MVT-PRIME IS NOT NUMERIC
+               DISPLAY 'PRIME INVALIDE : ' MVT-PRIME
+               ADD 1 TO IND-ERREUR
+           END-IF
+      * CONTROLE BONUS MALUS
+           IF MVT-BONUS-MALUS NOT = 'B' AND 'M'
+               DISPLAY 'BONUS MALUS INVALIDE : ' MVT-BONUS-MALUS
+               ADD 1 TO IND-ERREUR
+           END-IF
+      * CONTROLE TAUX
+           IF MVT-TAUX IS NOT NUMERIC
+               DISPLAY 'TAUX INVALIDE : ' MVT-TAUX
+               ADD 1 TO IND-ERREUR
+           END-IF
+           .
+      * ALIMENTATION DES TABLEAUX
+       ALIMENTATION-TABVE.
+           MOVE 'CCAMION' TO ZONE-VEHICULE(1)
+           MOVE 'MMOTO'   TO ZONE-VEHICULE(2)
+           MOVE 'VVOITURE' TO ZONE-VEHICULE(3)
+            .
+       ALIMENTATION-TABVI.
+           MOVE '13000MARSEILLE' TO ZONE-ZIP(1)
+           MOVE '21020BEAUNE'    TO ZONE-ZIP(2)
+           MOVE '24000PERIGUEUX' TO ZONE-ZIP(3)
+           MOVE '24200THIVIERS'  TO ZONE-ZIP(4)
+           MOVE '33000BORDEAUX'  TO ZONE-ZIP(5)
+           MOVE '51560CLUNY'     TO ZONE-ZIP(6)
+           MOVE '59000LILLE'     TO ZONE-ZIP(7)
+           MOVE '69007LYON'      TO ZONE-ZIP(8)
+           MOVE '75004PARIS'     TO ZONE-ZIP(9)
+           MOVE '75010PARIS'     TO ZONE-ZIP(10)
+           MOVE '75014PARIS'     TO ZONE-ZIP(11)
+           MOVE '75018PARIS'     TO ZONE-ZIP(12)
+           MOVE '75019PARIS'     TO ZONE-ZIP(13)
+           MOVE '92100BOULOGNE'  TO ZONE-ZIP(14)
+           MOVE '92200NEUILLY'   TO ZONE-ZIP(15)
+            .
+      *CONTROLES LOGIQUES EN FONCTION DU KSDS ASSURES
+       CTRL-LOGI.
+           INITIALIZE ZCOM
+           SET ZCOM-LECTURE TO TRUE
+              MOVE MVT-MATRICULE TO ZCOM-NUMERO
+           CALL PERSOSP USING ZCOM
+           EVALUATE MVT-ACTION
+               WHEN 'C'
+                IF ZCOM-TROUVE
+                   DISPLAY 'CREATION IMP, MATRICULE EXISTE :'
+                         MVT-MATRICULE
+                   ADD 1 TO IND-ERREUR
+                END-IF
+               WHEN 'M'
+                IF ZCOM-NON-TROUVE
+                   DISPLAY 'MODIFICATION IMP, MATRICULE INEXISTANT :'
+                         MVT-MATRICULE
+                   ADD 1 TO IND-ERREUR
+                END-IF
+               WHEN 'S'
+                IF ZCOM-NON-TROUVE
+                   DISPLAY 'SUPP IMP, MATRICULE INEXISTANT :'
+                         MVT-MATRICULE
+                   ADD 1 TO IND-ERREUR
+                END-IF
+           END-EVALUATE
+           .
+       UPDATE.
+           EVALUATE MVT-ACTION
+               WHEN 'C'
+               PERFORM CREATOJI
+               WHEN 'M'
+      *        PERFORM MODIFTOJI
+                  DISPLAY 'NOT YET MATE'
+               WHEN 'S'
+      *        PERFORM SUPPTOJI
+                  DISPLAY 'NO NO NO'
+           END-EVALUATE
+           .
+       CREATOJI.
+           MOVE SPACES TO ZCOM
+           INITIALIZE ZCOM
+           SET ZCOM-CREATION TO TRUE
+           MOVE MVT-ENR-ASSURE TO ZCOM-ASSURES
+           CALL PERSOSP USING ZCOM
+           IF ZCOM-CODE-RETOUR = 0
+             ADD 1 TO CPT-CRE
+           ELSE
+              DISPLAY ZCOM-CODE-RETOUR
+           END-IF
+           .
+       FIN.
+           INITIALIZE ZCOM
+           SET ZCOM-FERMETURE TO TRUE
+           CALL PERSOSP   USING ZCOM
+           IF NOT ZCOM-FERME
+             PERFORM FIN
+           END-IF
+           DISPLAY 'COMPTEUR DES ENREGISTREMENT LUS: ' CPT-LUS
+           DISPLAY 'COMPTEUR DES ENREGISTREMENTS CREES: ' CPT-CRE
+           DISPLAY 'COMPTEUR DES ENREGISTREMENTS ERR: ' CPT-ERR
+           DISPLAY 'FIN DU PROGRAMME PPERSO'
+           STOP RUN
+            .

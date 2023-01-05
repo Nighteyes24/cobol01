@@ -1,0 +1,100 @@
+       IDENTIFICATION DIVISION.
+      ******************************************************************
+      *   SOUS-PROGRAMME DE MODIFIATION D'UN ASSURE                    *
+      ******************************************************************
+       PROGRAM-ID. SPROG64.
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       SPECIAL-NAMES.
+            DECIMAL-POINT IS COMMA.
+
+      ******************************************************************
+      *   DECLARATION DU FICHIER ASSURES KSDS                          *
+      ******************************************************************
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+            SELECT ASSURES ASSIGN TO FASSURES
+                   ORGANIZATION   IS INDEXED
+                   ACCESS MODE    IS RANDOM
+                   RECORD KEY     IS ENRB-NUMERO
+                   FILE STATUS    IS FS-ASSURES.
+
+       DATA DIVISION.
+      ******************************************************************
+      *   DESCRIPTION DES BUFFERS                                      *
+      ******************************************************************
+       FILE SECTION.
+       FD  ASSURES.
+           COPY ASSURES2 REPLACING ==:PREF:== BY ==ENRB==.
+
+       WORKING-STORAGE SECTION.
+      ******************************************************************
+      *   DESCRIPTION DES ENREGISTREMENTS EN WORKING                   *
+      ******************************************************************
+           COPY ASSURES2 REPLACING ==:PREF:== BY ==ENRW==.
+
+      ******************************************************************
+      *   DECLARATION DU FILE STATUS                                   *
+      ******************************************************************
+       01  FS-ASSURES          PIC 99         VALUE ZEROES.
+
+       LINKAGE SECTION.
+      ******************************************************************
+      *   DESCRIPTION DE LA ZONE DE COMMUNICATION AVEC LE PROG APPELANT*
+      ******************************************************************
+       01  ZCOM-LEC.
+           05 ZCOM-NUMERO      PIC X(6).
+           05 ZCOM-ASSURES     PIC X(80).
+           05 ZCOM-CODE-RETOUR PIC 9.
+              88 ZCOM-TROUVE     VALUE 0.
+              88 ZCOM-NON-TROUVE VALUE 1.
+              88 ZCOM-ERREUR     VALUE 9.
+
+       PROCEDURE DIVISION USING ZCOM-LEC.
+           PERFORM DEBUT
+           PERFORM MODIFICATION
+           PERFORM FIN
+           .
+
+       DEBUT.
+      * OUVERTURE DU FICHIER ASSURES
+           OPEN INPUT ASSURES
+           IF FS-ASSURES NOT = ZEROES
+              DISPLAY 'ERREUR OUVERTURE FICHIER ASSURES, FS : '
+                      FS-ASSURES
+              PERFORM FIN
+           END-IF
+           .
+
+       MODIFICATION.
+      * ON LIT LE FICHIER DE BASE
+           MOVE ZCOM-NUMERO TO ENRB-NUMERO
+
+      * PROCEDURE DE MODIFICATION
+           READ ASSURES INTO ENRW-NUMERO
+             INVALID KEY
+              SET ZCOM-NON-TROUVE TO TRUE
+              DISPLAY 'CODE RETOUR :' ZCOM-NON-TROUVE
+             NOT INVALID KEY
+              SET ZCOM-TROUVE TO TRUE
+              DISPLAY 'CODE RETOUR :' ZCOM-TROUVE
+              MOVE ENRW-ASSURES TO ZCOM-ASSURES
+           END-READ
+           IF FS-ASSURES NOT = ZEROES AND 22
+              SET ZCOM-ERREUR TO TRUE
+              PERFORM FIN
+           END-IF
+           .
+           MOVE '10 RUE MARGUERITE' TO ZCOM-NOM-PRENOM
+           MOVE 06000 TO ZCOM-CODE-POSTAL
+           MOVE 'CANNES' TO ZCOM-VILLE
+           MOVE '3000,00' TO ZCOM-PRIME
+           MOVE 10 TO ZCOM-POURCENTAGE
+           REWRITE ASSURES
+           END-REWRITE.
+       FIN.
+      * FERMETURE DES FICHIERS
+           CLOSE ASSURES
+           GOBACK
+           .

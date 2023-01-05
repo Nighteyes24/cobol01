@@ -1,0 +1,46 @@
+       IDENTIFICATION DIVISION.
+      *****************************************************************
+      *  SOUS-PROGRAMME DE LECTURE D'1 ASSURE                         *
+      *****************************************************************
+       PROGRAM-ID. SSPRO1.
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       SPECIAL-NAMES.
+             DECIMAL-POINT IS COMMA.
+
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+      ****************************************************************
+      *   DECLARATION DES FILE STATUS                                *
+      ****************************************************************
+        01  SOUS-PROG          PIC X(8) VALUE SPACES.
+      * DESCRIPTION DE LA ZONE DE COMMUNICATION AC LE PROG APPELANT  *
+        01 ZCOM-LEC.
+           05 ZCOM-NUMERO                  PIC X(6).
+           05 ZCOM-ASSURES                 PIC X(80).
+           05 ZCOM-CODE-RETOUR            PIC 9.
+              88 ZCOM-TROUVE               VALUE ZEROES.
+              88 ZCOM-NON-TROUVE           VALUE 1.
+              88 ZCOM-ERREUR               VALUE 9.
+       PROCEDURE DIVISION.
+            PERFORM DEBUT
+            PERFORM TRAITEMENT
+            PERFORM FIN
+            .
+       DEBUT.
+      * ON RENSEIGNE LA CLE DU FICHIER
+           INITIALIZE ZCOM-LEC
+           ACCEPT ZCOM-NUMERO
+           .
+       TRAITEMENT.
+      * APPEL ACCESSEUR
+           MOVE 'SPROG1' TO SOUS-PROG
+           CALL SOUS-PROG USING ZCOM-LEC
+           DISPLAY 'CODE-RETOUR :' ZCOM-CODE-RETOUR
+           IF ZCOM-CODE-RETOUR = ZEROES
+              DISPLAY ZCOM-ASSURES
+           END-IF
+           .
+       FIN.
+           STOP RUN
+           .

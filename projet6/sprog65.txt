@@ -1,0 +1,135 @@
+            IDENTIFICATION DIVISION.
+      *   SOUS-PROGRAMME D'ACCES AU FICHIER KSDS DES ASSURES
+            PROGRAM-ID. SPROG5.
+            ENVIRONMENT DIVISION.
+            CONFIGURATION SECTION.
+            SPECIAL-NAMES.
+                 DECIMAL-POINT IS COMMA.
+      *   DECLARATION DU FICHIER ASSURES KSDS
+            INPUT-OUTPUT SECTION.
+            FILE-CONTROL.
+                 SELECT ASSURES ASSIGN TO FASSURES
+                        ORGANIZATION   IS INDEXED
+                        ACCESS MODE    IS RANDOM
+                        RECORD KEY     IS ENRB-NUMERO
+                        FILE STATUS    IS FS-ASSURES.
+            DATA DIVISION.
+      *   DESCRIPTION DES BUFFERS
+            FILE SECTION.
+             SELECT ASSURES ASSIGN TO FASSURES
+                         ORGANIZATION   IS INDEXED
+                         ACCESS MODE    IS RANDOM
+                         RECORD KEY     IS ENRB-NUMERO
+                         FILE STATUS    IS FS-ASSURES.
+             DATA DIVISION.
+      *   DESCRIPTION DES BUFFERS
+             FILE SECTION.
+             FD  ASSURES.
+                 COPY ASSURES2 REPLACING ==:PREF:== BY ==ENRB==.
+             WORKING-STORAGE SECTION.
+      *   DECLARATION DU FILE STATUS
+                    01  FS-ASSURES          PIC 99         VALUE ZEROES.
+                    LINKAGE SECTION.
+      *   DESCRIPTION DE LA ZONE DE COMMUNICATION AVEC LE PROG APPELANT*
+             COPY ZCOMASSU.
+             PROCEDURE DIVISION USING ZCOM.
+                 PERFORM DEBUT
+                 PERFORM TRAITEMENT
+                 PERFORM FIN
+                 .
+             DEBUT.
+                 EXIT
+                 .
+             TRAITEMENT.
+      * AIGUILLAGE SELON LE CODE FONCTION DEMANDE DS LE PROG APPELANT  *
+                  EVALUATE TRUE
+                  WHEN ZCOM-OUVERTURE
+                  PERFORM TRT-OUVERTURE
+                  WHEN ZCOM-LECTURE
+                  PERFORM TRT-LECTURE
+                  WHEN ZCOM-CREATION
+                     PERFORM TRT-CREATION
+                  WHEN ZCOM-MODIFICATION
+                     PERFORM TRT-MODIFICATION
+                  WHEN ZCOM-SUPPRESSION
+                     PERFORM TRT-SUPPRESSION
+                  WHEN ZCOM-FERMETURE
+                     PERFORM TRT-FERMETURE
+                  WHEN OTHER
+                     DISPLAY 'CODE FONCTION INVALIDE'
+                     PERFORM FIN
+                  END-EVALUATE
+                  .
+             TRT-OVERTURE.
+      * OUVERTURE DU FICHIER ASSURES
+                  OPEN I-O   ASSURES
+                  IF FS-ASSURES NOT = ZEROES
+                     DISPLAY 'ERREUR OUVERTURE FICHIER ASSURES, FS :'
+                                   FS-ASSURES
+                           PERFORM FIN
+                        END-IF
+                        .
+       TRT-LECTURE.
+      * ON RENSEIGNE LA CLE DU FICHIER
+              MOVE ZCOM-NUMERO       TO ENRB-NUMERO
+      * LECTURE ASSURE AVEC LA CLE
+              READ ASSURES         INTO ZCOM-ASSURES
+                INVALID KEY
+                SET ZCOM-NON-TROUVE TO TRUE
+                NOT INVALID KEY
+                SET ZCOM-TROUVE     TO TRUE
+              END-READ
+               IF FS-ASSURES NOT = ZEROES AND 23
+                SET ZCOM-ERREUR     TO TRUE
+                PERFORM FIN
+                                 END-IF
+                                 .
+       TRT-CREATION.
+      * CREATION ASSURE
+            WRITE ENRB-ASSURES FROM ZCOM-ASSURES
+              INVALID KEY
+              SET ZCOM-EN-DOUBLE  TO TRUE
+              NOT INVALID KEY
+              SET ZCOM-CREE       TO TRUE
+            END-WRITE
+              IF FS-ASSURES NOT = ZEROES AND 22
+              SET ZCOM-ERREUR     TO TRUE
+              PERFORM FIN
+            END-IF
+            .
+       TRT-MODIFICATION.
+      * MODIFICATION ASSURE
+            REWRITE ENRB-ASSURES FROM ZCOM-ASSURES
+              INVALID KEY
+              SET ZCOM-NON-TROUVE TO TRUE
+              NOT INVALID KEY
+              SET ZCOM-MODIFIE    TO TRUE
+            END-REWRITE
+              IF FS-ASSURES NOT = ZEROES AND 23
+              SET ZCOM-ERREUR     TO TRUE
+            PERFORM FIN
+            END-IF
+            .
+       TRT-SUPPRESSION.
+      * ON RENSEIGNE LA CLE DU FICHIER
+            MOVE ZCOM-NUMERO       TO ENRB-NUMERO
+      * SUPPRESSION DE L'ASSURE
+            DELETE ASSURES
+              INVALID KEY
+              SET ZCOM-NON-TROUVE TO TRUE
+              NOT INVALID KEY
+              SET ZCOM-SUPPRIME   TO TRUE
+            END-DELETE
+              IF FS-ASSURES NOT = ZEROES AND 23
+              SET ZCOM-ERREUR     TO TRUE
+            PERFORM FIN
+            END-IF
+            .
+       TRT-FERMETURE.
+      * FERMTURE DES FICHIERS
+            CLOSE ASSURES
+            SET ZCOM-FERME        TO TRUE
+            .
+            FIN.
+               GOBACK
+            .
